@@ -27,12 +27,12 @@ namespace PoolTournamentManager.Tests.Features.Players.Services
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
-            
+
             _dbContext = new ApplicationDbContext(options);
-            
+
             // Use NSubstitute for mocking dependencies
             _logger = Substitute.For<ILogger<PlayerService>>();
-            
+
             // Create our test implementation of PlayerService
             _playerService = new TestPlayerService(_dbContext, _logger);
         }
@@ -62,7 +62,7 @@ namespace PoolTournamentManager.Tests.Features.Players.Services
             Assert.Equal(createDto.Name, result.Player.Name);
             Assert.Equal(createDto.Email, result.Player.Email);
             Assert.Equal(createDto.PreferredCue, result.Player.PreferredCue);
-            
+
             // Verify player was added to database
             var playerInDb = await _dbContext.Players.FindAsync(result.Player.Id);
             Assert.NotNull(playerInDb);
@@ -81,7 +81,7 @@ namespace PoolTournamentManager.Tests.Features.Players.Services
                 PreferredCue = "House Cue",
                 Ranking = 5
             };
-            
+
             await _dbContext.Players.AddAsync(player);
             await _dbContext.SaveChangesAsync();
 
@@ -146,7 +146,7 @@ namespace PoolTournamentManager.Tests.Features.Players.Services
             };
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => 
+            await Assert.ThrowsAsync<ArgumentException>(() =>
                 _playerService.CreatePlayerAsync(createDto));
         }
 
@@ -191,7 +191,7 @@ namespace PoolTournamentManager.Tests.Features.Players.Services
             Assert.NotEmpty(result.Player.ProfilePictureUrl);
         }
     }
-    
+
     /// <summary>
     /// A test implementation of PlayerService that overrides the storage dependency
     /// </summary>
@@ -204,9 +204,9 @@ namespace PoolTournamentManager.Tests.Features.Players.Services
         {
             // Passing null for S3StorageService, but we'll override the methods that use it
         }
-        
+
         // Override the methods that use S3StorageService
-        
+
         public override async Task<CreatePlayerResponseDto> CreatePlayerAsync(CreatePlayerDto createPlayerDto)
         {
             // Validate the input
@@ -214,17 +214,17 @@ namespace PoolTournamentManager.Tests.Features.Players.Services
             {
                 throw new ArgumentException("Player name cannot be empty");
             }
-            
+
             if (string.IsNullOrWhiteSpace(createPlayerDto.Email) || !createPlayerDto.Email.Contains('@'))
             {
                 throw new ArgumentException("Invalid email format");
             }
-            
+
             if (createPlayerDto.ContentType != "image/jpeg" && createPlayerDto.ContentType != "image/png")
             {
                 throw new ArgumentException($"Content type {createPlayerDto.ContentType} is not allowed. Allowed types: image/jpeg, image/png");
             }
-            
+
             // Create player with a placeholder profile picture URL
             var player = new Player
             {
@@ -255,8 +255,8 @@ namespace PoolTournamentManager.Tests.Features.Players.Services
                 PresignedUrl = "https://test-presigned-url.com"
             };
         }
-        
+
         // Add a protected DbContext property to access from the overridden method
         protected ApplicationDbContext DbContext => _dbContext;
     }
-} 
+}

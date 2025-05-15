@@ -19,14 +19,14 @@ public class ExampleTests
     {
         // Arrange - setup test data and conditions
         bool condition = true;
-        
+
         // Act - perform the action being tested
         // (No action needed for this simple example)
-        
+
         // Assert - verify the result
         Assert.True(condition);
     }
-    
+
     /// <summary>
     /// Test showing the importance of handling equality correctly
     /// </summary>
@@ -36,13 +36,13 @@ public class ExampleTests
         // Arrange
         string expected = "Hello World";
         string actual = "Hello" + " " + "World";
-        
+
         // Act - no explicit action needed
-        
+
         // Assert
         Assert.Equal(expected, actual);
     }
-    
+
     /// <summary>
     /// Example of a Theory with InlineData for parameterized tests
     /// </summary>
@@ -54,7 +54,7 @@ public class ExampleTests
     {
         // Act
         int result = a + b;
-        
+
         // Assert
         Assert.Equal(expected, result);
     }
@@ -67,14 +67,14 @@ public class ExampleTests
     {
         // Arrange & Act
         var player = new Player();
-        
+
         // Assert
         Assert.NotNull(player.MatchesAsPlayer1);
         Assert.NotNull(player.MatchesAsPlayer2);
         Assert.Empty(player.MatchesAsPlayer1);
         Assert.Empty(player.MatchesAsPlayer2);
     }
-    
+
     /// <summary>
     /// Test that PlayerDto correctly holds values
     /// </summary>
@@ -92,7 +92,7 @@ public class ExampleTests
             Ranking = 100,
             MatchCount = 5
         };
-        
+
         // Act & Assert
         Assert.Equal("Test Player", dto.Name);
         Assert.Equal("test@example.com", dto.Email);
@@ -101,4 +101,4 @@ public class ExampleTests
         Assert.Equal(100, dto.Ranking);
         Assert.Equal(5, dto.MatchCount);
     }
-} 
+}
