@@ -11,4 +11,4 @@ namespace PoolTournamentManager.Tests.Mocks
         Task<(string PresignedUrl, string ObjectUrl)> GeneratePresignedUrlAsync(Guid id, string contentType);
         Task<bool> CheckBucketAccessAsync();
     }
-} 
+}
