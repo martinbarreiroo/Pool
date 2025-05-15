@@ -1,0 +1,32 @@
+name: Main Branch CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+          
+      - name: Restore dependencies
+        run: dotnet restore
+        
+      - name: Check formatting
+        run: dotnet format --verify-no-changes --verbosity diagnostic
+        
+      - name: Build project
+        run: dotnet build --no-restore
+        
+      - name: Run tests
+        run: dotnet test --no-build

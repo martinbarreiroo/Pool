@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  db-dev:
+    container_name: pool-tournamnet-manager-db-dev
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${DB_NAME:-pool_tournament_manager-db}
+    env_file:
+      - .env
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/pool_tournament_manager-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-pool_tournament_manager-db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+volumes:
+  pgdata-dev:
+    driver: local

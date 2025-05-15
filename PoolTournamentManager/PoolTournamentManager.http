@@ -1,0 +1,83 @@
+@PoolTournamentManager_HostAddress = http://localhost:5260
+
+### Get Profile Picture Upload URL
+POST {{PoolTournamentManager_HostAddress}}/api/players/1/profile-picture
+Content-Type: application/json
+
+### Create a new player
+POST {{PoolTournamentManager_HostAddress}}/api/players
+Content-Type: application/json
+
+{
+  "name": "Mike Johnson",
+  "email": "mike.johnson@example.com",
+  "phone": "555-123-4567",
+  "profilePictureUrl": "https://example.com/placeholder-profile.jpg",
+  "preferredCue": "McDermott G-Core"
+}
+
+### Get all players
+GET {{PoolTournamentManager_HostAddress}}/api/players
+Accept: application/json
+
+### Get a specific player by ID
+GET {{PoolTournamentManager_HostAddress}}/api/players/1
+Accept: application/json
+
+### Update a player
+PUT {{PoolTournamentManager_HostAddress}}/api/players/1
+Content-Type: application/json
+
+{
+  "name": "Michael Johnson",
+  "preferredCue": "Predator Revo"
+}
+
+### Delete a player
+DELETE {{PoolTournamentManager_HostAddress}}/api/players/1
+
+### Create a new tournament
+POST {{PoolTournamentManager_HostAddress}}/api/tournaments
+Content-Type: application/json
+
+{
+  "name": "Spring 8-Ball Championship",
+  "startDate": "2025-06-01T09:00:00",
+  "endDate": "2025-06-02T18:00:00",
+  "location": "City Pool Hall",
+  "description": "Annual spring tournament with cash prizes"
+}
+
+### Get all tournaments
+GET {{PoolTournamentManager_HostAddress}}/api/tournaments
+Accept: application/json
+
+### Get active tournaments
+GET {{PoolTournamentManager_HostAddress}}/api/tournaments?isActive=true
+Accept: application/json
+
+### Create a new match
+POST {{PoolTournamentManager_HostAddress}}/api/matches
+Content-Type: application/json
+
+{
+  "scheduledTime": "2025-06-01T10:00:00",
+  "playerIds": [1, 2],
+  "tournamentId": 1,
+  "location": "Table #3"
+}
+
+### Get matches by date range
+GET {{PoolTournamentManager_HostAddress}}/api/matches?startDate=2025-06-01&endDate=2025-06-02
+Accept: application/json
+
+### Update match result
+PUT {{PoolTournamentManager_HostAddress}}/api/matches/1
+Content-Type: application/json
+
+{
+  "endTime": "2025-06-01T10:45:00",
+  "winnerId": 1,
+  "player1Score": 5,
+  "player2Score": 3
+}
