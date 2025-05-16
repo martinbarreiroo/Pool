@@ -5,10 +5,12 @@ using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
 using dotenv.net;
 
-// Load environment variables from .env file
-DotEnv.Load(options: new DotEnvOptions(envFilePaths: new[] { ".env" }));
-
 var builder = WebApplication.CreateBuilder(args);
+
+if (!builder.Environment.IsDevelopment())
+{
+    DotEnv.Load();
+}
 
 // Add services to the container.
 builder.Services.AddControllers()
