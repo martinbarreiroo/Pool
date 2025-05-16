@@ -27,7 +27,6 @@ jobs:
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/pool-tournament-manager:latest
 
-
       - name: Log in to Azure
         uses: azure/login@v1
         with:
@@ -36,12 +35,12 @@ jobs:
       - name: Configure Azure App Service to use GHCR image
         run: |
           az webapp config container set \
-            --name ${{ secrets.AZURE_WEBAPP_NAME }} \
-            --resource-group ${{ secrets.AZURE_RG }} \
-            --docker-custom-image-name ghcr.io/${{ github.repository_owner }}/pool-tournament-manager:latest \
-            --docker-registry-server-url https://ghcr.io \
-            --docker-registry-server-user ${{ github.actor }} \
-            --docker-registry-server-password ${{ secrets.GITHUB_TOKEN }}
+          --name ${{ secrets.AZURE_WEBAPP_NAME }} \
+          --resource-group ${{ secrets.AZURE_RG }} \
+          --container-image-name ghcr.io/${{ github.repository_owner }}/pool-tournament-manager:latest \
+          --container-registry-url https://ghcr.io \
+          --docker-registry-server-user ${{ github.actor }} \
+          --docker-registry-server-password ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restart Azure App
         run: |
