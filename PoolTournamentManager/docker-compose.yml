@@ -1,21 +1,34 @@
-version: '3.8'
-
 services:
+  api:
+    container_name: pool-tournament-manager-api
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db-dev;Database=PoolTournamentManager;Username=${DB_USER:-admin};Password=${DB_PASSWORD:-admin}
+    env_file:
+      - .env
+    depends_on:
+      db-dev:
+        condition: service_healthy
+
   db-dev:
-    container_name: pool-tournamnet-manager-db-dev
+    container_name: pool-tournament-manager-db
     image: postgres:latest
     ports:
       - "5432:5432"
     environment:
       POSTGRES_USER: ${DB_USER:-admin}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
-      POSTGRES_DB: ${DB_NAME:-pool_tournament_manager-db}
+      POSTGRES_DB: ${DB_NAME:-pool-tournament-manager-db}
     env_file:
       - .env
     volumes:
-      - pgdata-dev:/var/lib/postgresql/pool_tournament_manager-db
+      - pgdata-dev:/var/lib/postgresql/pool-tournament-manager-db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-pool_tournament_manager-db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-pool-tournament-manager-db}"]
       interval: 5s
       timeout: 5s
       retries: 5

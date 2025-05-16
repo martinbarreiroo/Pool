@@ -3,17 +3,19 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS builder
 
 WORKDIR /app
 
-# Copy csproj files and restore dependencies
+# Copy solution and project files
 COPY *.sln .
 COPY PoolTournamentManager/*.csproj ./PoolTournamentManager/
 COPY PoolTournamentManager.Tests/*.csproj ./PoolTournamentManager.Tests/
+
+# Restore dependencies
 RUN dotnet restore
 
-# Copy the rest of the source code
+# Copy the rest of the code
 COPY . .
 
-# Build and publish the application
-RUN dotnet publish PoolTournamentManager/PoolTournamentManager.csproj -c Release -o /app/publish --no-restore
+# Build and publish
+RUN dotnet publish PoolTournamentManager/PoolTournamentManager.csproj -c Release -o /app/publish
 
 # Stage 2: Run the application
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runner

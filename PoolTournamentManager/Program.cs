@@ -27,6 +27,7 @@ var connectionString = builder.Configuration.GetValue<string>("AZURE_POSTGRESQL_
 builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+Console.WriteLine($"Using connection string: {connectionString}");
 
 // Register AWS services with environment variables taking precedence
 var awsOptions = new AWSOptions();
@@ -103,5 +104,23 @@ app.UseCors("AllowLocalhost");
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Apply migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>();
+        context.Database.Migrate();
+        Console.WriteLine("Database migrations applied successfully.");
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while applying database migrations.");
+        throw;
+    }
+}
 
 app.Run();
