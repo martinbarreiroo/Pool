@@ -24,8 +24,22 @@ builder.Services.AddEndpointsApiExplorer();
 var connectionString = builder.Configuration.GetValue<string>("AZURE_POSTGRESQL_CONNECTIONSTRING")
                        ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
+// Ensure SSL is enabled for Azure PostgreSQL
+if (connectionString != null && !connectionString.Contains("Ssl Mode="))
+{
+    connectionString += ";Ssl Mode=Require;Trust Server Certificate=true;";
+}
+
 builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+{
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorCodesToAdd: null);
+    });
+});
 
 Console.WriteLine($"Using connection string: {connectionString}");
 

@@ -5,7 +5,7 @@ services:
       context: ..
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "80:80"
     environment:
       - ConnectionStrings__DefaultConnection=Host=db-dev;Database=PoolTournamentManager;Username=${DB_USER:-admin};Password=${DB_PASSWORD:-admin}
     env_file:
