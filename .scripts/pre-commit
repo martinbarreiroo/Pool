@@ -9,7 +9,7 @@ echo "*********************************************************"
 cd "$(dirname "$0")/.."
 
 # Run dotnet format on the solution
-dotnet format PoolTournamentManager.sln --verify-no-changes
+dotnet format Pool.sln
 format_status=$?
 
 if [ "$format_status" -ne 0 ]; then
