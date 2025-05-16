@@ -47,7 +47,7 @@ jobs:
             --docker-custom-image-name ghcr.io/${{ github.repository_owner }}/pool-tournament-manager:${{ github.sha }} \
             --docker-registry-server-url https://ghcr.io \
             --docker-registry-server-user ${{ github.actor }} \
-            --docker-registry-server-password ${{ secrets.GITHUB_TOKEN }}
+            --docker-registry-server-password ${{ secrets.GHCR_PULL_TOKEN }}
 
       - name: Restart Azure App
         run: |
