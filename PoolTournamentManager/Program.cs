@@ -7,12 +7,6 @@ using dotenv.net;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load .env file only in Development environment
-if (builder.Environment.IsDevelopment())
-{
-    DotEnv.Load();
-}
-
 // Add services to the container.
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -24,13 +18,77 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
-var connectionString = builder.Configuration.GetValue<string>("AZURE_POSTGRESQL_CONNECTIONSTRING")
-                       ?? builder.Configuration.GetConnectionString("DefaultConnection");
-
-// Ensure SSL is enabled for Azure PostgreSQL
-if (connectionString != null && !connectionString.Contains("Ssl Mode="))
+// Load .env file only in Development environment
+if (builder.Environment.IsDevelopment())
 {
-    connectionString += ";Ssl Mode=Require;";
+    DotEnv.Load();
+}
+
+string? connectionString = null;
+
+if (builder.Environment.IsProduction())
+{
+    Console.WriteLine("Production environment detected. Attempting to load AZURE_POSTGRESQL_CONNECTIONSTRING from environment variables.");
+    connectionString = Environment.GetEnvironmentVariable("AZURE_POSTGRESQL_CONNECTIONSTRING");
+
+    if (string.IsNullOrEmpty(connectionString) || connectionString.StartsWith("${", StringComparison.OrdinalIgnoreCase))
+    {
+        Console.Error.WriteLine("FATAL ERROR: AZURE_POSTGRESQL_CONNECTIONSTRING is not configured or is a placeholder in Production environment.");
+        Console.Error.WriteLine("Please ensure 'AZURE_POSTGRESQL_CONNECTIONSTRING' is correctly set in your production environment variables.");
+        throw new InvalidOperationException("Database connection string is not properly configured for Production. Check console logs for details.");
+    }
+}
+else // Non-Production environments (e.g., Development)
+{
+    Console.WriteLine("Non-Production environment detected. Trying AZURE_POSTGRESQL_CONNECTIONSTRING from env first, then appsettings.json DefaultConnection.");
+    // Try AZURE_POSTGRESQL_CONNECTIONSTRING from environment variables first
+    connectionString = Environment.GetEnvironmentVariable("AZURE_POSTGRESQL_CONNECTIONSTRING");
+
+    // If AZURE_POSTGRESQL_CONNECTIONSTRING is not found or is a placeholder, try appsettings.json DefaultConnection
+    if (string.IsNullOrEmpty(connectionString) || connectionString.StartsWith("${", StringComparison.OrdinalIgnoreCase))
+    {
+        Console.WriteLine("AZURE_POSTGRESQL_CONNECTIONSTRING not found or is placeholder in env, trying DefaultConnection from appsettings.json.");
+        string? defaultConnectionStringTemplate = builder.Configuration.GetSection("ConnectionStrings")["DefaultConnection"];
+
+        if (!string.IsNullOrEmpty(defaultConnectionStringTemplate) && defaultConnectionStringTemplate.Contains("${"))
+        {
+            Console.WriteLine($"Connection string template from appsettings: {defaultConnectionStringTemplate}");
+            // Manually resolve placeholders from environment variables
+            string? dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+            string? dbName = Environment.GetEnvironmentVariable("DB_NAME");
+            string? dbUser = Environment.GetEnvironmentVariable("DB_USER");
+            string? dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+
+            if (!string.IsNullOrEmpty(dbHost) && !string.IsNullOrEmpty(dbName) && !string.IsNullOrEmpty(dbUser) && !string.IsNullOrEmpty(dbPassword))
+            {
+                connectionString = defaultConnectionStringTemplate
+                    .Replace("${DB_HOST}", dbHost, StringComparison.OrdinalIgnoreCase)
+                    .Replace("${DB_NAME}", dbName, StringComparison.OrdinalIgnoreCase)
+                    .Replace("${DB_USER}", dbUser, StringComparison.OrdinalIgnoreCase)
+                    .Replace("${DB_PASSWORD}", dbPassword, StringComparison.OrdinalIgnoreCase);
+                Console.WriteLine($"Resolved connection string from template: {connectionString}");
+            }
+            else
+            {
+                Console.Error.WriteLine("One or more required environment variables (DB_HOST, DB_NAME, DB_USER, DB_PASSWORD) for DefaultConnection are missing.");
+                connectionString = null; // Ensure it remains null or empty to trigger the error below
+            }
+        }
+        else if (!string.IsNullOrEmpty(defaultConnectionStringTemplate))
+        {
+            // It's a non-placeholder string directly from appsettings.json
+            connectionString = defaultConnectionStringTemplate;
+            Console.WriteLine($"Using direct DefaultConnection from appsettings.json: {connectionString}");
+        }
+    }
+
+    // Validate the final connection string for non-production
+    if (string.IsNullOrEmpty(connectionString) || connectionString.Contains("${")) // Check if any placeholder remains unresolved
+    {
+        Console.Error.WriteLine("FATAL ERROR: Database connection string is not configured or placeholders could not be resolved in non-Production environment.");
+        Console.Error.WriteLine("Ensure AZURE_POSTGRESQL_CONNECTIONSTRING is set, or DefaultConnection in appsettings.json has its placeholders (e.g., ${DB_HOST}) resolvable from .env or environment variables.");
+        throw new InvalidOperationException("Database connection string is not properly configured or placeholders unresolved. Check console logs.");
+    }
 }
 
 builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
