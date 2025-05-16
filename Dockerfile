@@ -25,13 +25,13 @@ WORKDIR /app
 # Set environment to production
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENV ASPNETCORE_URLS=http://+:80
 
 # Copy the published application from the builder stage
 COPY --from=builder /app/publish .
 
 # Expose the API port
 EXPOSE 80
-EXPOSE 443
 
 # Start the application
 ENTRYPOINT ["dotnet", "PoolTournamentManager.dll"]
