@@ -44,10 +44,10 @@ jobs:
           az webapp config container set \
             --name ${{ secrets.AZURE_WEBAPP_NAME }} \
             --resource-group ${{ secrets.AZURE_RG }} \
-            --docker-custom-image-name ghcr.io/${{ github.repository_owner }}/pool-tournament-manager:${{ github.sha }} \
-            --docker-registry-server-url https://ghcr.io \
-            --docker-registry-server-user ${{ github.actor }} \
-            --docker-registry-server-password ${{ secrets.GHCR_PULL_TOKEN }}
+            --container-image-name ghcr.io/${{ github.repository_owner }}/pool-tournament-manager:${{ github.sha }} \
+            --container-registry-url https://ghcr.io \
+            --container-registry-user ${{ github.actor }} \
+            --container-registry-password "${{ secrets.GHCR_PULL_TOKEN }}"
 
       - name: Restart Azure App
         run: |
