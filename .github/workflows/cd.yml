@@ -44,7 +44,7 @@ jobs:
           az webapp config container set \
             --name ${{ secrets.AZURE_WEBAPP_NAME }} \
             --resource-group ${{ secrets.AZURE_RG }} \
-            --container-image-name ghcr.io/${{ github.repository_owner }}/pool-tournament-manager:${{ github.sha }} \
+            --container-image-name ghcr.io/${{ github.repository_owner }}/pool-tournament-manager:latest \
             --container-registry-url https://ghcr.io \
             --container-registry-user ${{ github.actor }} \
             --container-registry-password "${{ secrets.GHCR_PULL_TOKEN }}"
