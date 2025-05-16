@@ -27,7 +27,7 @@ var connectionString = builder.Configuration.GetValue<string>("AZURE_POSTGRESQL_
 // Ensure SSL is enabled for Azure PostgreSQL
 if (connectionString != null && !connectionString.Contains("Ssl Mode="))
 {
-    connectionString += ";Ssl Mode=Require;Trust Server Certificate=true;";
+    connectionString += ";Ssl Mode=Require;";
 }
 
 builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
@@ -35,9 +35,10 @@ builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.A
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
         npgsqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 3,
+            maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorCodesToAdd: null);
+        npgsqlOptions.CommandTimeout(30);
     });
 });
 
