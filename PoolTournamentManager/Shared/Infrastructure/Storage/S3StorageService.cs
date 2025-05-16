@@ -33,7 +33,7 @@ namespace PoolTournamentManager.Shared.Infrastructure.Storage
                 ? configBucketName
                 : envBucketName ?? throw new ArgumentNullException("S3 bucket name not configured");
 
-            logger?.LogInformation("Using S3 bucket: {BucketName}", _bucketName);
+            logger.LogInformation("Using S3 bucket: {BucketName}", _bucketName);
 
             _profilePicturePath = configuration?.GetValue<string>("AWS:S3:ProfilePicturePath") ?? "players/{0}/profile";
             _presignedUrlExpirationMinutes = configuration?.GetValue<int>("AWS:S3:PresignedUrlExpirationMinutes") ?? 15;

@@ -9,12 +9,12 @@ namespace PoolTournamentManager.Features.Players.Services
     public class PlayerService
     {
         protected readonly ApplicationDbContext _dbContext;
-        private readonly S3StorageService _storageService;
+        private readonly S3StorageService? _storageService;
         private readonly ILogger<PlayerService> _logger;
 
         public PlayerService(
             ApplicationDbContext dbContext,
-            S3StorageService storageService,
+            S3StorageService? storageService,
             ILogger<PlayerService> logger)
         {
             _dbContext = dbContext;
@@ -89,10 +89,12 @@ namespace PoolTournamentManager.Features.Players.Services
             await _dbContext.SaveChangesAsync();
 
             // Generate presigned URL for profile picture upload
-            var (presignedUrl, objectUrl) = await _storageService.GeneratePresignedUrlAsync(
-                player.Id,
-                createPlayerDto.ContentType // Use the content type specified by the client
-            );
+            var (presignedUrl, objectUrl) = _storageService != null
+                ? await _storageService.GeneratePresignedUrlAsync(
+                    player.Id,
+                    createPlayerDto.ContentType // Use the content type specified by the client
+                  )
+                : (string.Empty, string.Empty);
 
             // Update player with the profile picture URL
             player.ProfilePictureUrl = objectUrl;
@@ -173,10 +175,12 @@ namespace PoolTournamentManager.Features.Players.Services
                 throw new KeyNotFoundException($"Player with ID {playerId} not found");
 
             // Generate presigned URL
-            var (presignedUrl, objectUrl) = await _storageService.GeneratePresignedUrlAsync(
-                playerId,
-                "image/jpeg"
-            );
+            var (presignedUrl, objectUrl) = _storageService != null
+                ? await _storageService.GeneratePresignedUrlAsync(
+                    playerId,
+                    "image/jpeg"
+                  )
+                : (string.Empty, string.Empty);
 
             // Update player with the new picture URL
             player.ProfilePictureUrl = objectUrl;

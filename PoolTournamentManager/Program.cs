@@ -21,7 +21,7 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
-var connectionString = builder.Configuration.GetValue<string>("AZURE_POSTGRESQL_CONNECTIONSTRING") 
+var connectionString = builder.Configuration.GetValue<string>("AZURE_POSTGRESQL_CONNECTIONSTRING")
                        ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
