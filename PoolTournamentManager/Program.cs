@@ -7,7 +7,8 @@ using dotenv.net;
 
 var builder = WebApplication.CreateBuilder(args);
 
-if (!builder.Environment.IsDevelopment())
+// Load .env file only in Development environment
+if (builder.Environment.IsDevelopment())
 {
     DotEnv.Load();
 }
