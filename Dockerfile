@@ -26,6 +26,7 @@ WORKDIR /app
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_RUNNING_IN_CONTAINER=true
 ENV ASPNETCORE_URLS=http://+:80
+ENV PORT=80
 
 # Copy the published application from the builder stage
 COPY --from=builder /app/publish .
