@@ -18,9 +18,9 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data.EntityConfigurations
         {
             builder.HasKey(p => p.Id);
 
-            // Explicitly mapping Guid to the appropriate DB provider type
+            // Always use SQL Server's uniqueidentifier for Guid properties
             builder.Property(p => p.Id)
-                .HasColumnType(_environment?.IsDevelopment() == true ? "uuid" : "uniqueidentifier");
+                .HasColumnType("uniqueidentifier");
 
             builder.Property(p => p.Name)
                 .IsRequired()

@@ -27,37 +27,24 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data
                     logger.LogInformation("Applying migrations for {EnvironmentName} environment",
                         environment.EnvironmentName);
 
-                    // Log what migrations namespace we're using based on environment
-                    if (environment.IsDevelopment())
-                    {
-                        logger.LogInformation("Using PostgreSQL migrations");
+                    logger.LogInformation("Using SQL Server migrations");
 
-                        // Ensure the database exists and apply migrations
-                        context.Database.EnsureCreated();
+                    try
+                    {
+                        // First check connection
+                        context.Database.ExecuteSqlRaw("SELECT 1");
+
+                        // Apply migrations
                         context.Database.Migrate();
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        logger.LogInformation("Using SQL Server migrations");
+                        logger.LogError(ex, "An error occurred during SQL Server migration. Trying alternative approach...");
 
-                        try
-                        {
-                            // For SQL Server first check connection
-                            context.Database.ExecuteSqlRaw("SELECT 1");
-
-                            // Now try to migrate with our fixed migration (20250517210000_FixColumnDataTypes)
-                            // This will recreate the tables with the correct column types
-                            context.Database.Migrate();
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, "An error occurred during SQL Server migration. Trying alternative approach...");
-
-                            // If the migration fails, try to create the database from scratch
-                            // This is a fallback mechanism
-                            context.Database.EnsureDeleted();
-                            context.Database.EnsureCreated();
-                        }
+                        // If the migration fails, try to create the database from scratch
+                        // This is a fallback mechanism
+                        context.Database.EnsureDeleted();
+                        context.Database.EnsureCreated();
                     }
 
                     logger.LogInformation("Database migrations applied successfully");

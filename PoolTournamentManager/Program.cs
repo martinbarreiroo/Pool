@@ -26,43 +26,26 @@ if (builder.Environment.IsDevelopment())
 
 string connectionString;
 
-// In Development, use PostgreSQL with .env variables
+// Use SQL Server for all environments, with different configuration sources
 if (builder.Environment.IsDevelopment())
 {
-    Console.WriteLine("Development environment: Using PostgreSQL from .env");
+    Console.WriteLine("Development environment: Using SQL Server from .env");
 
-    // Get PostgreSQL connection values from .env
-    string? pgHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-    string? pgPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
-    string? pgDatabase = Environment.GetEnvironmentVariable("DB_NAME") ?? "pool-tournament-manager-db";
-    string? pgUser = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
-    string? pgPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+    // Get SQL Server connection values from .env or Docker environment
+    string? dbHost = Environment.GetEnvironmentVariable("SQLSERVER_SA_HOST") ?? "localhost";
+    string? dbPort = Environment.GetEnvironmentVariable("SQLSERVER_PORT") ?? "1433";
+    string? dbName = Environment.GetEnvironmentVariable("SQLSERVER_DATABASE") ?? "pool-tournament-manager-db";
+    string? dbUser = Environment.GetEnvironmentVariable("SQLSERVER_USER") ?? "sa";
+    string? dbPassword = Environment.GetEnvironmentVariable("SQLSERVER_SA_PASSWORD");
 
-    if (string.IsNullOrEmpty(pgPassword))
+    if (string.IsNullOrEmpty(dbPassword))
     {
-        Console.Error.WriteLine("FATAL ERROR: DB_PASSWORD is not set in .env file for development.");
-        throw new InvalidOperationException("PostgreSQL password is not set in .env file.");
+        Console.Error.WriteLine("FATAL ERROR: SQLSERVER_SA_PASSWORD is not set in .env file for development.");
+        throw new InvalidOperationException("SQL Server password is not set in .env file.");
     }
 
-    // Build PostgreSQL connection string
-    connectionString = $"Host={pgHost};Port={pgPort};Database={pgDatabase};Username={pgUser};Password={pgPassword}";
-
-    // Register PostgreSQL provider
-    builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>((serviceProvider, options) =>
-    {
-        options.UseNpgsql(connectionString, npgsqlOptions =>
-        {
-            npgsqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorCodesToAdd: null);
-            npgsqlOptions.CommandTimeout(30);
-        });
-
-        // This will make the IHostEnvironment available to the DbContext
-    }, ServiceLifetime.Scoped);
-
-    Console.WriteLine($"Using PostgreSQL: {pgHost}:{pgPort}, Database={pgDatabase}");
+    // Build SQL Server connection string for development
+    connectionString = $"Server={dbHost},{dbPort};Database={dbName};User ID={dbUser};Password={dbPassword};TrustServerCertificate=True;";
 }
 // In Production or other environments, use SQL Server with Azure variables
 else
@@ -87,25 +70,23 @@ else
     }
 
     // Build SQL Server connection string
-    connectionString = $"Server={dbHost},{dbPort};Database={dbName};User ID={dbUser};Password={dbPassword};";
-
-    // Register SQL Server provider
-    builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>((serviceProvider, options) =>
-    {
-        options.UseSqlServer(connectionString, sqlServerOptions =>
-        {
-            sqlServerOptions.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null);
-            sqlServerOptions.CommandTimeout(30);
-        });
-
-        // This will make the IHostEnvironment available to the DbContext
-    }, ServiceLifetime.Scoped);
-
-    Console.WriteLine($"Using SQL Server: {dbHost}:{dbPort}, Database={dbName}");
+    connectionString = $"Server={dbHost},{dbPort};Database={dbName};User ID={dbUser};Password={dbPassword};TrustServerCertificate=True;";
 }
+
+// Register SQL Server provider for all environments
+builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>((serviceProvider, options) =>
+{
+    options.UseSqlServer(connectionString, sqlServerOptions =>
+    {
+        sqlServerOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null);
+        sqlServerOptions.CommandTimeout(30);
+    });
+}, ServiceLifetime.Scoped);
+
+Console.WriteLine($"Using SQL Server connection: Server={connectionString.Split(';')[0].Split('=')[1]}");
 
 // Register AWS services with environment variables taking precedence
 var awsOptions = new AWSOptions();
