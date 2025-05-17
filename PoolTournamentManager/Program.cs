@@ -4,6 +4,7 @@ using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
 using dotenv.net;
 using PoolTournamentManager.Shared.Infrastructure.Data;
+using PoolTournamentManager.Shared.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,8 +15,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Add Swagger with OpenAPI
+builder.Services.AddSwaggerDocumentation();
 builder.Services.AddEndpointsApiExplorer();
 
 // Load .env file only in Development environment
@@ -151,9 +152,11 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseDeveloperExceptionPage();
 }
+
+// Enable Swagger in all environments
+app.UseOpenApi();
 
 app.UseHttpsRedirection();
 
