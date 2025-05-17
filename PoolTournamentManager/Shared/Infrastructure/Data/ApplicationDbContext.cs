@@ -9,16 +9,11 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data
     {
         private readonly string? _migrationAssembly;
 
+        // Single constructor with optional parameter
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, string? migrationAssembly = null)
             : base(options)
         {
             _migrationAssembly = migrationAssembly;
-        }
-
-        // This constructor is used by EF Core tools
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
         }
 
         public DbSet<Player> Players { get; set; }
