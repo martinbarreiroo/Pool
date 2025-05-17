@@ -3,20 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PoolTournamentManager.Shared.Infrastructure.Data;
 
 #nullable disable
 
-namespace PoolTournamentManager.Migrations.SqlServer
+namespace PoolTournamentManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250517195024_UpdatedEntityModels")]
-    partial class UpdatedEntityModels
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

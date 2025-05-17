@@ -3,27 +3,24 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace PoolTournamentManager.Migrations.PostgreSQL
+namespace PoolTournamentManager.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class InitialSqlServerMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // NOTE: PostgreSQL uses "uuid" for Guid data type, while SQL Server uses "uniqueidentifier"
-            // This migration is specific to PostgreSQL. SQL Server migrations are in their own directory.
-
             migrationBuilder.CreateTable(
                 name: "Players",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    ProfilePictureUrl = table.Column<string>(type: "text", nullable: false),
-                    PreferredCue = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Ranking = table.Column<int>(type: "integer", nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ProfilePictureUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PreferredCue = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Ranking = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -34,13 +31,13 @@ namespace PoolTournamentManager.Migrations.PostgreSQL
                 name: "Tournaments",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Location = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    Description = table.Column<string>(type: "text", nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Location = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -51,17 +48,17 @@ namespace PoolTournamentManager.Migrations.PostgreSQL
                 name: "Matches",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ScheduledTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    EndTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    WinnerId = table.Column<Guid>(type: "uuid", nullable: true),
-                    TournamentId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Player1Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Player2Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Location = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    Notes = table.Column<string>(type: "text", nullable: true),
-                    Player1Score = table.Column<int>(type: "integer", nullable: true),
-                    Player2Score = table.Column<int>(type: "integer", nullable: true)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ScheduledTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    WinnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    TournamentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Player1Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Player2Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Location = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Player1Score = table.Column<int>(type: "int", nullable: true),
+                    Player2Score = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -82,8 +79,7 @@ namespace PoolTournamentManager.Migrations.PostgreSQL
                         name: "FK_Matches_Tournaments_TournamentId",
                         column: x => x.TournamentId,
                         principalTable: "Tournaments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(

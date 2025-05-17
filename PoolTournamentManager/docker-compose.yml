@@ -7,29 +7,29 @@ services:
     env_file:
       - .env
     depends_on:
-      db-dev:
+      sqlserver:
         condition: service_healthy
-
-  db-dev:
-    container_name: pool-tournament-manager-db
-    image: postgres:latest
+  sqlserver:
+    container_name: pool-tournament-manager-sqlserver
+    image: mcr.microsoft.com/mssql/server:2022-latest
     ports:
-      - "5432:5432"
+      - "1433:1433"
     environment:
-      POSTGRES_USER: ${DB_USER:-admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
-      POSTGRES_DB: ${DB_NAME:-pool-tournament-manager-db}
-    env_file:
-      - .env
+      ACCEPT_EULA: "Y"
+      MSSQL_USER: ${SQLSERVER_USER:-sa}
+      MSSQL_DATABASE: ${SQLSERVER_DATABASE:-pool-tournament-manager-db}
+      MSSQL_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:-Password123!}
+      MSSQL_SA_HOST: ${SQLSERVER_SA_HOST:-localhost}
+      MSSQL_PID: "Developer"
     volumes:
-      - pgdata-dev:/var/lib/postgresql/pool-tournament-manager-db
+      - sqlserver-data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-pool-tournament-manager-db}"]
-      interval: 5s
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -Q "SELECT 1" || exit 1
+      interval: 10s
       timeout: 5s
       retries: 5
     restart: always
 
 volumes:
-  pgdata-dev:
+  sqlserver-data:
     driver: local
