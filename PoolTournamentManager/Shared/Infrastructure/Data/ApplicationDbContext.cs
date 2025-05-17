@@ -7,9 +7,13 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly string? _migrationAssembly;
+
+        // Single constructor with optional parameter
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, string? migrationAssembly = null)
             : base(options)
         {
+            _migrationAssembly = migrationAssembly;
         }
 
         public DbSet<Player> Players { get; set; }
@@ -39,7 +43,6 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data
                 .WithMany(t => t.Matches)
                 .HasForeignKey(m => m.TournamentId)
                 .OnDelete(DeleteBehavior.SetNull);
-
         }
     }
 }

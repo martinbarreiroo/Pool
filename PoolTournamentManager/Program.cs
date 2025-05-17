@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Amazon.S3;
 using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
 using dotenv.net;
+using PoolTournamentManager.Shared.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,86 +24,84 @@ if (builder.Environment.IsDevelopment())
     DotEnv.Load();
 }
 
-string? connectionString = null;
+string connectionString;
 
-if (builder.Environment.IsProduction())
+// In Development, use PostgreSQL with .env variables
+if (builder.Environment.IsDevelopment())
 {
-    Console.WriteLine("Production environment detected. Attempting to load AZURE_POSTGRESQL_CONNECTIONSTRING from environment variables.");
-    connectionString = Environment.GetEnvironmentVariable("AZURE_POSTGRESQL_CONNECTIONSTRING");
+    Console.WriteLine("Development environment: Using PostgreSQL from .env");
 
-    if (string.IsNullOrEmpty(connectionString) || connectionString.StartsWith("${", StringComparison.OrdinalIgnoreCase))
+    // Get PostgreSQL connection values from .env
+    string? pgHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
+    string? pgPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
+    string? pgDatabase = Environment.GetEnvironmentVariable("DB_NAME") ?? "pool-tournament-manager-db";
+    string? pgUser = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
+    string? pgPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+
+    if (string.IsNullOrEmpty(pgPassword))
     {
-        Console.Error.WriteLine("FATAL ERROR: AZURE_POSTGRESQL_CONNECTIONSTRING is not configured or is a placeholder in Production environment.");
-        Console.Error.WriteLine("Please ensure 'AZURE_POSTGRESQL_CONNECTIONSTRING' is correctly set in your production environment variables.");
-        throw new InvalidOperationException("Database connection string is not properly configured for Production. Check console logs for details.");
+        Console.Error.WriteLine("FATAL ERROR: DB_PASSWORD is not set in .env file for development.");
+        throw new InvalidOperationException("PostgreSQL password is not set in .env file.");
     }
-}
-else // Non-Production environments (e.g., Development)
-{
-    Console.WriteLine("Non-Production environment detected. Trying AZURE_POSTGRESQL_CONNECTIONSTRING from env first, then appsettings.json DefaultConnection.");
-    // Try AZURE_POSTGRESQL_CONNECTIONSTRING from environment variables first
-    connectionString = Environment.GetEnvironmentVariable("AZURE_POSTGRESQL_CONNECTIONSTRING");
 
-    // If AZURE_POSTGRESQL_CONNECTIONSTRING is not found or is a placeholder, try appsettings.json DefaultConnection
-    if (string.IsNullOrEmpty(connectionString) || connectionString.StartsWith("${", StringComparison.OrdinalIgnoreCase))
+    // Build PostgreSQL connection string
+    connectionString = $"Host={pgHost};Port={pgPort};Database={pgDatabase};Username={pgUser};Password={pgPassword}";
+
+    // Register PostgreSQL provider
+    builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
     {
-        Console.WriteLine("AZURE_POSTGRESQL_CONNECTIONSTRING not found or is placeholder in env, trying DefaultConnection from appsettings.json.");
-        string? defaultConnectionStringTemplate = builder.Configuration.GetSection("ConnectionStrings")["DefaultConnection"];
-
-        if (!string.IsNullOrEmpty(defaultConnectionStringTemplate) && defaultConnectionStringTemplate.Contains("${"))
+        options.UseNpgsql(connectionString, npgsqlOptions =>
         {
-            Console.WriteLine($"Connection string template from appsettings: {defaultConnectionStringTemplate}");
-            // Manually resolve placeholders from environment variables
-            string? dbHost = Environment.GetEnvironmentVariable("DB_HOST");
-            string? dbName = Environment.GetEnvironmentVariable("DB_NAME");
-            string? dbUser = Environment.GetEnvironmentVariable("DB_USER");
-            string? dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
-
-            if (!string.IsNullOrEmpty(dbHost) && !string.IsNullOrEmpty(dbName) && !string.IsNullOrEmpty(dbUser) && !string.IsNullOrEmpty(dbPassword))
-            {
-                connectionString = defaultConnectionStringTemplate
-                    .Replace("${DB_HOST}", dbHost, StringComparison.OrdinalIgnoreCase)
-                    .Replace("${DB_NAME}", dbName, StringComparison.OrdinalIgnoreCase)
-                    .Replace("${DB_USER}", dbUser, StringComparison.OrdinalIgnoreCase)
-                    .Replace("${DB_PASSWORD}", dbPassword, StringComparison.OrdinalIgnoreCase);
-                Console.WriteLine($"Resolved connection string from template: {connectionString}");
-            }
-            else
-            {
-                Console.Error.WriteLine("One or more required environment variables (DB_HOST, DB_NAME, DB_USER, DB_PASSWORD) for DefaultConnection are missing.");
-                connectionString = null; // Ensure it remains null or empty to trigger the error below
-            }
-        }
-        else if (!string.IsNullOrEmpty(defaultConnectionStringTemplate))
-        {
-            // It's a non-placeholder string directly from appsettings.json
-            connectionString = defaultConnectionStringTemplate;
-            Console.WriteLine($"Using direct DefaultConnection from appsettings.json: {connectionString}");
-        }
-    }
-
-    // Validate the final connection string for non-production
-    if (string.IsNullOrEmpty(connectionString) || connectionString.Contains("${")) // Check if any placeholder remains unresolved
-    {
-        Console.Error.WriteLine("FATAL ERROR: Database connection string is not configured or placeholders could not be resolved in non-Production environment.");
-        Console.Error.WriteLine("Ensure AZURE_POSTGRESQL_CONNECTIONSTRING is set, or DefaultConnection in appsettings.json has its placeholders (e.g., ${DB_HOST}) resolvable from .env or environment variables.");
-        throw new InvalidOperationException("Database connection string is not properly configured or placeholders unresolved. Check console logs.");
-    }
-}
-
-builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
-{
-    options.UseNpgsql(connectionString, npgsqlOptions =>
-    {
-        npgsqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorCodesToAdd: null);
-        npgsqlOptions.CommandTimeout(30);
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorCodesToAdd: null);
+            npgsqlOptions.CommandTimeout(30);
+        });
     });
-});
 
-Console.WriteLine($"Using connection string: {connectionString}");
+    Console.WriteLine($"Using PostgreSQL: {pgHost}:{pgPort}, Database={pgDatabase}");
+}
+// In Production or other environments, use SQL Server with Azure variables
+else
+{
+    Console.WriteLine("Production environment: Using SQL Server from Azure variables");
+
+    // Get SQL Server connection values from Azure environment variables
+    string? dbHost = Environment.GetEnvironmentVariable("AZURE_SQL_HOST");
+    string? dbName = Environment.GetEnvironmentVariable("AZURE_SQL_DATABASE");
+    string? dbUser = Environment.GetEnvironmentVariable("AZURE_SQL_USERNAME");
+    string? dbPassword = Environment.GetEnvironmentVariable("AZURE_SQL_PASSWORD");
+    string? dbPort = Environment.GetEnvironmentVariable("AZURE_SQL_PORT") ?? "1433"; // Default SQL Server port
+
+    if (string.IsNullOrEmpty(dbHost) ||
+        string.IsNullOrEmpty(dbName) ||
+        string.IsNullOrEmpty(dbUser) ||
+        string.IsNullOrEmpty(dbPassword))
+    {
+        Console.Error.WriteLine("FATAL ERROR: One or more required Azure SQL environment variables are missing.");
+        Console.Error.WriteLine("Please ensure AZURE_SQL_HOST, AZURE_SQL_DATABASE, AZURE_SQL_USERNAME, AZURE_SQL_PASSWORD are set.");
+        throw new InvalidOperationException("Database connection string cannot be built due to missing environment variables.");
+    }
+
+    // Build SQL Server connection string
+    connectionString = $"Server={dbHost},{dbPort};Database={dbName};User ID={dbUser};Password={dbPassword};";
+
+    // Register SQL Server provider
+    builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
+    {
+        options.UseSqlServer(connectionString, sqlServerOptions =>
+        {
+            sqlServerOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+            sqlServerOptions.CommandTimeout(30);
+        });
+    });
+
+    Console.WriteLine($"Using SQL Server: {dbHost}:{dbPort}, Database={dbName}");
+}
 
 // Register AWS services with environment variables taking precedence
 var awsOptions = new AWSOptions();
@@ -182,21 +180,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Apply migrations on startup
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>();
-        context.Database.Migrate();
-        Console.WriteLine("Database migrations applied successfully.");
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while applying database migrations.");
-        throw;
-    }
-}
+app.MigrateDatabase();
 
 app.Run();

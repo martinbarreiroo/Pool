@@ -9,18 +9,18 @@ using PoolTournamentManager.Shared.Infrastructure.Data;
 
 #nullable disable
 
-namespace PoolTournamentManager.Migrations
+namespace PoolTournamentManager.Migrations.PostgreSQL
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250514124809_UpdatePlayerMatchRelationship")]
-    partial class UpdatePlayerMatchRelationship
+    [Migration("20250517190221_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.4")
+                .HasAnnotation("ProductVersion", "9.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);

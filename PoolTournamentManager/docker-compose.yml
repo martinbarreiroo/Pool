@@ -1,13 +1,9 @@
 services:
   api:
     container_name: pool-tournament-manager-api
-    build:
-      context: ..
-      dockerfile: Dockerfile
+    image: ghcr.io/martinbarreiroo/pool-tournament-manager:latest
     ports:
       - "80:80"
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=db-dev;Database=PoolTournamentManager;Username=${DB_USER:-admin};Password=${DB_PASSWORD:-admin}
     env_file:
       - .env
     depends_on:
