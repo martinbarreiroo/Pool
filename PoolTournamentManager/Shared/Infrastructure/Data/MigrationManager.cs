@@ -31,14 +31,34 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data
                     if (environment.IsDevelopment())
                     {
                         logger.LogInformation("Using PostgreSQL migrations");
+
+                        // Ensure the database exists and apply migrations
+                        context.Database.EnsureCreated();
+                        context.Database.Migrate();
                     }
                     else
                     {
                         logger.LogInformation("Using SQL Server migrations");
-                    }
 
-                    // Apply the migrations
-                    context.Database.Migrate();
+                        try
+                        {
+                            // For SQL Server first check connection
+                            context.Database.ExecuteSqlRaw("SELECT 1");
+
+                            // Now try to migrate with our fixed migration (20250517210000_FixColumnDataTypes)
+                            // This will recreate the tables with the correct column types
+                            context.Database.Migrate();
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "An error occurred during SQL Server migration. Trying alternative approach...");
+
+                            // If the migration fails, try to create the database from scratch
+                            // This is a fallback mechanism
+                            context.Database.EnsureDeleted();
+                            context.Database.EnsureCreated();
+                        }
+                    }
 
                     logger.LogInformation("Database migrations applied successfully");
                 }

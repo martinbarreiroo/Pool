@@ -1,18 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PoolTournamentManager.Features.Players.Models;
+using Microsoft.Extensions.Hosting;
 
 namespace PoolTournamentManager.Shared.Infrastructure.Data.EntityConfigurations
 {
     public class PlayerConfiguration : IEntityTypeConfiguration<Player>
     {
+        private readonly IHostEnvironment? _environment;
+
+        public PlayerConfiguration(IHostEnvironment? environment = null)
+        {
+            _environment = environment;
+        }
+
         public void Configure(EntityTypeBuilder<Player> builder)
         {
             builder.HasKey(p => p.Id);
 
             // Explicitly mapping Guid to the appropriate DB provider type
             builder.Property(p => p.Id)
-                .HasColumnType("uniqueidentifier"); // Uses uniqueidentifier in SQL Server
+                .HasColumnType(_environment?.IsDevelopment() == true ? "uuid" : "uniqueidentifier");
 
             builder.Property(p => p.Name)
                 .IsRequired()
