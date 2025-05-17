@@ -7,6 +7,15 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data
 {
     public class ApplicationDbContext : DbContext
     {
+        private readonly string? _migrationAssembly;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, string? migrationAssembly = null)
+            : base(options)
+        {
+            _migrationAssembly = migrationAssembly;
+        }
+
+        // This constructor is used by EF Core tools
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -39,7 +48,6 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data
                 .WithMany(t => t.Matches)
                 .HasForeignKey(m => m.TournamentId)
                 .OnDelete(DeleteBehavior.SetNull);
-
         }
     }
 }
