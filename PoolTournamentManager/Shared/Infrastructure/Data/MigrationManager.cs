@@ -27,6 +27,17 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data
                     logger.LogInformation("Applying migrations for {EnvironmentName} environment",
                         environment.EnvironmentName);
 
+                    // Log what migrations namespace we're using based on environment
+                    if (environment.IsDevelopment())
+                    {
+                        logger.LogInformation("Using PostgreSQL migrations");
+                    }
+                    else
+                    {
+                        logger.LogInformation("Using SQL Server migrations");
+                    }
+
+                    // Apply the migrations
                     context.Database.Migrate();
 
                     logger.LogInformation("Database migrations applied successfully");

@@ -20,29 +20,38 @@ namespace PoolTournamentManager.Shared.Infrastructure.Data
         public DbSet<Match> Matches { get; set; }
         public DbSet<Tournament> Tournaments { get; set; }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            // Suppress the pending model changes warning
+            optionsBuilder.ConfigureWarnings(warnings =>
+                warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure Player entity relationships with matches
-            modelBuilder.Entity<Player>()
-                .HasMany(p => p.MatchesAsPlayer1)
-                .WithOne(m => m.Player1)
-                .HasForeignKey(m => m.Player1Id)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Apply entity configurations 
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-            modelBuilder.Entity<Player>()
-                .HasMany(p => p.MatchesAsPlayer2)
-                .WithOne(m => m.Player2)
-                .HasForeignKey(m => m.Player2Id)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Configure Match entity relationship with tournament
-            modelBuilder.Entity<Match>()
-                .HasOne(m => m.Tournament)
-                .WithMany(t => t.Matches)
-                .HasForeignKey(m => m.TournamentId)
-                .OnDelete(DeleteBehavior.SetNull);
+            // These relationships can be removed as they are now defined in entity configurations
+            // modelBuilder.Entity<Player>()
+            //     .HasMany(p => p.MatchesAsPlayer1)
+            //     .WithOne(m => m.Player1)
+            //     .HasForeignKey(m => m.Player1Id)
+            //     .OnDelete(DeleteBehavior.Restrict);
+            // 
+            // modelBuilder.Entity<Player>()
+            //     .HasMany(p => p.MatchesAsPlayer2)
+            //     .WithOne(m => m.Player2)
+            //     .HasForeignKey(m => m.Player2Id)
+            //     .OnDelete(DeleteBehavior.Restrict);
+            // 
+            // modelBuilder.Entity<Match>()
+            //     .HasOne(m => m.Tournament)
+            //     .WithMany(t => t.Matches)
+            //     .HasForeignKey(m => m.TournamentId)
+            //     .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

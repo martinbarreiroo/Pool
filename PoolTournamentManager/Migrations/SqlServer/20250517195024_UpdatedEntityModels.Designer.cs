@@ -12,8 +12,8 @@ using PoolTournamentManager.Shared.Infrastructure.Data;
 namespace PoolTournamentManager.Migrations.SqlServer
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250517192615_InitialSqlServerMigration")]
-    partial class InitialSqlServerMigration
+    [Migration("20250517195024_UpdatedEntityModels")]
+    partial class UpdatedEntityModels
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -153,8 +153,7 @@ namespace PoolTournamentManager.Migrations.SqlServer
 
                     b.HasOne("PoolTournamentManager.Features.Tournaments.Models.Tournament", "Tournament")
                         .WithMany("Matches")
-                        .HasForeignKey("TournamentId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("TournamentId");
 
                     b.Navigation("Player1");
 
