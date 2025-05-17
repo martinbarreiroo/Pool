@@ -48,7 +48,7 @@ if (builder.Environment.IsDevelopment())
     connectionString = $"Host={pgHost};Port={pgPort};Database={pgDatabase};Username={pgUser};Password={pgPassword}";
 
     // Register PostgreSQL provider
-    builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
+    builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>((serviceProvider, options) =>
     {
         options.UseNpgsql(connectionString, npgsqlOptions =>
         {
@@ -58,7 +58,9 @@ if (builder.Environment.IsDevelopment())
                 errorCodesToAdd: null);
             npgsqlOptions.CommandTimeout(30);
         });
-    });
+
+        // This will make the IHostEnvironment available to the DbContext
+    }, ServiceLifetime.Scoped);
 
     Console.WriteLine($"Using PostgreSQL: {pgHost}:{pgPort}, Database={pgDatabase}");
 }
@@ -88,7 +90,7 @@ else
     connectionString = $"Server={dbHost},{dbPort};Database={dbName};User ID={dbUser};Password={dbPassword};";
 
     // Register SQL Server provider
-    builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>(options =>
+    builder.Services.AddDbContext<PoolTournamentManager.Shared.Infrastructure.Data.ApplicationDbContext>((serviceProvider, options) =>
     {
         options.UseSqlServer(connectionString, sqlServerOptions =>
         {
@@ -98,7 +100,9 @@ else
                 errorNumbersToAdd: null);
             sqlServerOptions.CommandTimeout(30);
         });
-    });
+
+        // This will make the IHostEnvironment available to the DbContext
+    }, ServiceLifetime.Scoped);
 
     Console.WriteLine($"Using SQL Server: {dbHost}:{dbPort}, Database={dbName}");
 }
