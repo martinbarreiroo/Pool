@@ -1,40 +1,44 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using NSubstitute;
 using PoolTournamentManager.Features.Players.DTOs;
 using PoolTournamentManager.Features.Players.Models;
 using PoolTournamentManager.Features.Players.Services;
 using PoolTournamentManager.Shared.Infrastructure.Data;
-using PoolTournamentManager.Shared.Infrastructure.Storage;
-using Xunit;
+using PoolTournamentManager.Tests.Mocks;
 
 namespace PoolTournamentManager.Tests.Features.Players.Services
 {
     public class PlayerServiceTests : IDisposable
     {
+        // Helper method to create mock configuration sections
+        private IConfigurationSection CreateConfigSection(string value)
+        {
+            var section = Substitute.For<IConfigurationSection>();
+            section.Value.Returns(value);
+            return section;
+        }
+
         private readonly ApplicationDbContext _dbContext;
-        private readonly ILogger<PlayerService> _logger;
-        private readonly TestPlayerService _playerService;
+        private readonly PlayerService _playerService;
+        private readonly MockStorageService _mockStorageService;
 
         public PlayerServiceTests()
         {
-            // Create in-memory database for testing
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
 
             _dbContext = new ApplicationDbContext(options);
 
-            // Use NSubstitute for mocking dependencies
-            _logger = Substitute.For<ILogger<PlayerService>>();
+            // Create a mock storage service that implements IStorageService
+            _mockStorageService = new MockStorageService(
+                defaultPresignedUrl: "https://test-presigned-url.com",
+                defaultObjectUrl: "https://test-bucket.s3.amazonaws.com/test-image.jpg"
+            );
 
-            // Create our test implementation of PlayerService
-            _playerService = new TestPlayerService(_dbContext, _logger);
+            // Use the actual PlayerService with our mock storage service
+            _playerService = new PlayerService(_dbContext, _mockStorageService);
         }
 
         public void Dispose()
@@ -190,73 +194,70 @@ namespace PoolTournamentManager.Tests.Features.Players.Services
             Assert.NotNull(result.Player.ProfilePictureUrl);
             Assert.NotEmpty(result.Player.ProfilePictureUrl);
         }
-    }
 
-    /// <summary>
-    /// A test implementation of PlayerService that overrides the storage dependency
-    /// </summary>
-    public class TestPlayerService : PlayerService
-    {
-        public TestPlayerService(
-            ApplicationDbContext dbContext,
-            ILogger<PlayerService> logger)
-            : base(dbContext, null, logger)
+        [Fact]
+        public async Task CreatePlayerAsync_VerifiesProfilePictureUrlIsFromMock()
         {
-            // Passing null for S3StorageService, but we'll override the methods that use it
-        }
-
-        // Override the methods that use S3StorageService
-
-        public override async Task<CreatePlayerResponseDto> CreatePlayerAsync(CreatePlayerDto createPlayerDto)
-        {
-            // Validate the input
-            if (string.IsNullOrWhiteSpace(createPlayerDto.Name))
+            // Arrange
+            var createDto = new CreatePlayerDto
             {
-                throw new ArgumentException("Player name cannot be empty");
-            }
-
-            if (string.IsNullOrWhiteSpace(createPlayerDto.Email) || !createPlayerDto.Email.Contains('@'))
-            {
-                throw new ArgumentException("Invalid email format");
-            }
-
-            if (createPlayerDto.ContentType != "image/jpeg" && createPlayerDto.ContentType != "image/png")
-            {
-                throw new ArgumentException($"Content type {createPlayerDto.ContentType} is not allowed. Allowed types: image/jpeg, image/png");
-            }
-
-            // Create player with a placeholder profile picture URL
-            var player = new Player
-            {
-                Name = createPlayerDto.Name,
-                Email = createPlayerDto.Email,
-                ProfilePictureUrl = "https://test-bucket.s3.amazonaws.com/test-image.jpg", // Use a fixed URL
-                PreferredCue = createPlayerDto.PreferredCue,
-                // Initialize with default value
-                Ranking = 0
+                Name = "Test Player",
+                Email = "test@example.com",
+                ContentType = "image/jpeg"
             };
 
-            DbContext.Players.Add(player);
-            await DbContext.SaveChangesAsync();
+            // Act
+            var result = await _playerService.CreatePlayerAsync(createDto);
 
-            // Create response with player data and presigned URL
-            return new CreatePlayerResponseDto
-            {
-                Player = new PlayerDto
-                {
-                    Id = player.Id,
-                    Name = player.Name,
-                    Email = player.Email,
-                    ProfilePictureUrl = player.ProfilePictureUrl,
-                    PreferredCue = player.PreferredCue,
-                    Ranking = player.Ranking,
-                    MatchCount = 0
-                },
-                PresignedUrl = "https://test-presigned-url.com"
-            };
+            // Assert
+            // Verify that the profile picture URL came from our mock
+            Assert.Equal("https://test-bucket.s3.amazonaws.com/test-image.jpg", result.Player.ProfilePictureUrl);
+            Assert.Equal("https://test-presigned-url.com", result.PresignedUrl);
         }
 
-        // Add a protected DbContext property to access from the overridden method
-        protected ApplicationDbContext DbContext => _dbContext;
+        [Fact]
+        public async Task CreatePlayerAsync_WithInvalidContentType_ThrowsException()
+        {
+            // Arrange
+            var createDto = new CreatePlayerDto
+            {
+                Name = "John Doe",
+                Email = "john@example.com",
+                PreferredCue = "Custom Cue",
+                ContentType = "application/pdf" // Invalid content type
+            };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+                await _playerService.CreatePlayerAsync(createDto));
+
+            // Verify the exception contains the expected message
+            Assert.Contains("Content type application/pdf is not allowed", exception.Message);
+            Assert.Contains("Allowed types: image/jpeg, image/png", exception.Message);
+        }
+
+        [Fact]
+        public async Task StorageService_CheckAccess_ReturnsConfiguredValue()
+        {
+            // Arrange
+            var mockStorageService = new MockStorageService(isStorageAccessible: true);
+            var playerService = new PlayerService(_dbContext, mockStorageService);
+
+            // Act
+            bool isAccessible = await mockStorageService.CheckAccessAsync();
+
+            // Assert
+            Assert.True(isAccessible);
+
+            // Arrange - With inaccessible storage
+            mockStorageService = new MockStorageService(isStorageAccessible: false);
+            playerService = new PlayerService(_dbContext, mockStorageService);
+
+            // Act
+            isAccessible = await mockStorageService.CheckAccessAsync();
+
+            // Assert
+            Assert.False(isAccessible);
+        }
     }
 }

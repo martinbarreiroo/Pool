@@ -125,7 +125,8 @@ else
 builder.Services.AddAWSService<IAmazonS3>(awsOptions);
 
 // Register application services
-builder.Services.AddScoped<PoolTournamentManager.Shared.Infrastructure.Storage.S3StorageService>();
+// Register storage service with interface
+builder.Services.AddScoped<PoolTournamentManager.Shared.Infrastructure.Storage.IStorageService, PoolTournamentManager.Shared.Infrastructure.Storage.S3StorageService>();
 builder.Services.AddScoped<PoolTournamentManager.Features.Players.Services.PlayerService>();
 builder.Services.AddScoped<PoolTournamentManager.Features.Matches.Services.MatchService>();
 builder.Services.AddScoped<PoolTournamentManager.Features.Tournaments.Services.TournamentService>();

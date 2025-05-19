@@ -9,17 +9,13 @@ namespace PoolTournamentManager.Features.Players.Services
     public class PlayerService
     {
         protected readonly ApplicationDbContext _dbContext;
-        private readonly S3StorageService? _storageService;
-        private readonly ILogger<PlayerService> _logger;
-
+        private readonly IStorageService? _storageService;
         public PlayerService(
             ApplicationDbContext dbContext,
-            S3StorageService? storageService,
-            ILogger<PlayerService> logger)
+            IStorageService? storageService)
         {
             _dbContext = dbContext;
             _storageService = storageService;
-            _logger = logger;
         }
 
         public virtual async Task<List<PlayerDto>> GetAllPlayersAsync(string? searchTerm = null)
