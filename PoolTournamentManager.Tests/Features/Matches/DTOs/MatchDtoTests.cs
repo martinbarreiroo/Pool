@@ -24,9 +24,7 @@ namespace PoolTournamentManager.Tests.Features.Matches.DTOs
             Assert.Null(dto.Player1);
             Assert.Null(dto.Player2);
             Assert.Null(dto.Location);
-            Assert.Null(dto.Notes);
-            Assert.Null(dto.Player1Score);
-            Assert.Null(dto.Player2Score);
+
         }
 
         [Fact]
@@ -54,9 +52,6 @@ namespace PoolTournamentManager.Tests.Features.Matches.DTOs
                 Player1 = player1,
                 Player2 = player2,
                 Location = "Pool Hall A",
-                Notes = "Championship match",
-                Player1Score = 5,
-                Player2Score = 3
             };
 
             // Act & Assert
@@ -71,9 +66,6 @@ namespace PoolTournamentManager.Tests.Features.Matches.DTOs
             Assert.Same(player1, dto.Player1);
             Assert.Same(player2, dto.Player2);
             Assert.Equal("Pool Hall A", dto.Location);
-            Assert.Equal("Championship match", dto.Notes);
-            Assert.Equal(5, dto.Player1Score);
-            Assert.Equal(3, dto.Player2Score);
         }
 
         [Fact]
@@ -88,7 +80,6 @@ namespace PoolTournamentManager.Tests.Features.Matches.DTOs
             Assert.Equal(Guid.Empty, dto.Player2Id);
             Assert.Null(dto.TournamentId);
             Assert.Null(dto.Location);
-            Assert.Null(dto.Notes);
         }
 
         [Fact]
@@ -105,9 +96,6 @@ namespace PoolTournamentManager.Tests.Features.Matches.DTOs
             Assert.Null(dto.Player1Id);
             Assert.Null(dto.Player2Id);
             Assert.Null(dto.Location);
-            Assert.Null(dto.Notes);
-            Assert.Null(dto.Player1Score);
-            Assert.Null(dto.Player2Score);
         }
 
         [Fact]

@@ -88,18 +88,60 @@ namespace PoolTournamentManager.Features.Matches.Services
                 if (createMatchDto.Player1Id == createMatchDto.Player2Id)
                     throw new InvalidOperationException("Player 1 and Player 2 cannot be the same player");
 
+                // Validate that tournament exists if provided and load it with its matches
+                if (createMatchDto.TournamentId.HasValue)
+                {
+                    var tournament = await _dbContext.Tournaments
+                        .Include(t => t.Matches)
+                        .FirstOrDefaultAsync(t => t.Id == createMatchDto.TournamentId.Value);
+
+                    if (tournament == null)
+                        throw new KeyNotFoundException($"Tournament with ID {createMatchDto.TournamentId.Value} not found");
+
+                    _logger.LogInformation("Tournament found: {TournamentId}, {TournamentName}, Current match count: {MatchCount}",
+                        tournament.Id, tournament.Name, tournament.Matches.Count);
+                }
+
+                // Get tournament location if needed
+                string? matchLocation = createMatchDto.Location;
+                if (createMatchDto.TournamentId.HasValue && string.IsNullOrEmpty(matchLocation))
+                {
+                    var tournament = await _dbContext.Tournaments
+                        .Include(t => t.Matches)
+                        .FirstOrDefaultAsync(t => t.Id == createMatchDto.TournamentId.Value);
+
+                    if (tournament != null && !string.IsNullOrEmpty(tournament.Location))
+                    {
+                        _logger.LogInformation("Using tournament location for match: {Location}", tournament.Location);
+                        matchLocation = tournament.Location;
+                    }
+                }
+
                 var match = new Match
                 {
                     ScheduledTime = createMatchDto.ScheduledTime,
                     Player1Id = createMatchDto.Player1Id,
                     Player2Id = createMatchDto.Player2Id,
                     TournamentId = createMatchDto.TournamentId,
-                    Location = createMatchDto.Location,
-                    Notes = createMatchDto.Notes
+                    Location = matchLocation,
                 };
 
                 _logger.LogInformation("Adding match to database");
                 _dbContext.Matches.Add(match);
+
+                // If this match belongs to a tournament, make sure it's properly added to the tournament's collection
+                if (createMatchDto.TournamentId.HasValue)
+                {
+                    var tournament = await _dbContext.Tournaments
+                        .Include(t => t.Matches)
+                        .FirstOrDefaultAsync(t => t.Id == createMatchDto.TournamentId.Value);
+
+                    if (tournament != null)
+                    {
+                        _logger.LogInformation("Explicitly adding match to tournament's match collection");
+                        tournament.Matches.Add(match);
+                    }
+                }
 
                 _logger.LogInformation("Saving changes to database");
                 await _dbContext.SaveChangesAsync();
@@ -188,20 +230,60 @@ namespace PoolTournamentManager.Features.Matches.Services
             if (updateMatchDto.WinnerId.HasValue)
                 match.WinnerId = updateMatchDto.WinnerId.Value;
 
+            // Handle tournament association changes
             if (updateMatchDto.TournamentId.HasValue)
-                match.TournamentId = updateMatchDto.TournamentId.Value;
+            {
+                var oldTournamentId = match.TournamentId;
+                var newTournamentId = updateMatchDto.TournamentId.Value;
+
+                // If tournament is changing
+                if (oldTournamentId != newTournamentId)
+                {
+                    // Remove from old tournament if applicable
+                    if (oldTournamentId.HasValue)
+                    {
+                        var oldTournament = await _dbContext.Tournaments
+                            .Include(t => t.Matches)
+                            .FirstOrDefaultAsync(t => t.Id == oldTournamentId.Value);
+
+                        if (oldTournament != null)
+                        {
+                            _logger.LogInformation("Removing match from previous tournament: {TournamentId}", oldTournamentId);
+                            var matchInCollection = oldTournament.Matches.FirstOrDefault(m => m.Id == match.Id);
+                            if (matchInCollection != null)
+                            {
+                                oldTournament.Matches.Remove(matchInCollection);
+                            }
+                        }
+                    }
+
+                    // Add to new tournament
+                    var newTournament = await _dbContext.Tournaments
+                        .Include(t => t.Matches)
+                        .FirstOrDefaultAsync(t => t.Id == newTournamentId);
+
+                    if (newTournament == null)
+                        throw new KeyNotFoundException($"Tournament with ID {newTournamentId} not found");
+
+                    _logger.LogInformation("Adding match to new tournament: {TournamentId}, {TournamentName}, Current match count: {MatchCount}",
+                        newTournament.Id, newTournament.Name, newTournament.Matches.Count);
+
+                    // If location wasn't explicitly provided and match location is empty, use tournament location
+                    if (updateMatchDto.Location == null && string.IsNullOrEmpty(match.Location) &&
+                        !string.IsNullOrEmpty(newTournament.Location))
+                    {
+                        _logger.LogInformation("Using tournament location for match: {Location}", newTournament.Location);
+                        match.Location = newTournament.Location;
+                    }
+
+                    newTournament.Matches.Add(match);
+                    match.TournamentId = newTournamentId;
+                }
+            }
 
             if (updateMatchDto.Location != null)
                 match.Location = updateMatchDto.Location;
 
-            if (updateMatchDto.Notes != null)
-                match.Notes = updateMatchDto.Notes;
-
-            if (updateMatchDto.Player1Score.HasValue)
-                match.Player1Score = updateMatchDto.Player1Score.Value;
-
-            if (updateMatchDto.Player2Score.HasValue)
-                match.Player2Score = updateMatchDto.Player2Score.Value;
 
             await _dbContext.SaveChangesAsync();
 
@@ -221,6 +303,24 @@ namespace PoolTournamentManager.Features.Matches.Services
             if (match == null)
                 return false;
 
+            // Handle tournament association if match belongs to a tournament
+            if (match.TournamentId.HasValue)
+            {
+                var tournament = await _dbContext.Tournaments
+                    .Include(t => t.Matches)
+                    .FirstOrDefaultAsync(t => t.Id == match.TournamentId.Value);
+
+                if (tournament != null)
+                {
+                    _logger.LogInformation("Removing match from tournament {TournamentId} before deletion", match.TournamentId);
+                    var matchInCollection = tournament.Matches.FirstOrDefault(m => m.Id == match.Id);
+                    if (matchInCollection != null)
+                    {
+                        tournament.Matches.Remove(matchInCollection);
+                    }
+                }
+            }
+
             _dbContext.Matches.Remove(match);
             await _dbContext.SaveChangesAsync();
 
@@ -230,30 +330,116 @@ namespace PoolTournamentManager.Features.Matches.Services
         // Helper method to check for scheduling conflicts
         private async Task<bool> HasScheduleConflictAsync(Guid player1Id, Guid player2Id, DateTime scheduledTime, Guid? excludeMatchId = null)
         {
-            // Get all matches for the specified players around the scheduled time
-            // Consider a buffer before and after (e.g., 1 hour)
-            var buffer = TimeSpan.FromHours(1);
-            var startTimeWithBuffer = scheduledTime.Subtract(buffer);
-            var endTimeWithBuffer = scheduledTime.Add(buffer);
+            // Default buffer - used for matches that don't have an end time yet
+            var defaultBuffer = TimeSpan.FromMinutes(30);
 
-            // Check for Player1 conflicts
-            var player1Conflicts = await _dbContext.Matches
-                .Where(m => (m.Player1Id == player1Id || m.Player2Id == player1Id))
-                .Where(m => m.ScheduledTime >= startTimeWithBuffer && m.ScheduledTime <= endTimeWithBuffer)
+            // Load all potentially conflicting matches for both players
+            var allMatches = await _dbContext.Matches
+                .Where(m => m.Player1Id == player1Id || m.Player2Id == player1Id ||
+                            m.Player1Id == player2Id || m.Player2Id == player2Id)
                 .Where(m => excludeMatchId == null || m.Id != excludeMatchId.Value)
-                .AnyAsync();
+                .ToListAsync();
 
-            if (player1Conflicts)
-                return true;
+            // Separate the matches for each player (a match could involve both players)
+            var player1Matches = allMatches.Where(m => m.Player1Id == player1Id || m.Player2Id == player1Id).ToList();
+            var player2Matches = allMatches.Where(m => m.Player1Id == player2Id || m.Player2Id == player2Id)
+                                         .Where(m => !player1Matches.Any(p1m => p1m.Id == m.Id)) // Filter out matches that involve both players
+                                         .ToList();
 
-            // Check for Player2 conflicts
-            var player2Conflicts = await _dbContext.Matches
-                .Where(m => (m.Player1Id == player2Id || m.Player2Id == player2Id))
-                .Where(m => m.ScheduledTime >= startTimeWithBuffer && m.ScheduledTime <= endTimeWithBuffer)
-                .Where(m => excludeMatchId == null || m.Id != excludeMatchId.Value)
-                .AnyAsync();
+            _logger.LogDebug("Found {Player1MatchCount} matches for Player1 and {Player2MatchCount} unique matches for Player2",
+                player1Matches.Count, player2Matches.Count);
 
-            return player2Conflicts;
+            // Check for conflicts with Player1's matches
+            foreach (var match in player1Matches)
+            {
+                if (IsTimeConflicting(match, scheduledTime, defaultBuffer))
+                {
+                    _logger.LogDebug("Found conflict with match {MatchId} for Player1", match.Id);
+                    return true;
+                }
+            }
+
+            // Check for conflicts with Player2's matches
+            foreach (var match in player2Matches)
+            {
+                if (IsTimeConflicting(match, scheduledTime, defaultBuffer))
+                {
+                    _logger.LogDebug("Found conflict with match {MatchId} for Player2", match.Id);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Helper to determine if a match conflicts with a proposed time
+        private bool IsTimeConflicting(Match match, DateTime proposedTime, TimeSpan defaultBuffer)
+        {
+            // Start time is always the scheduled time
+            var matchStartTime = match.ScheduledTime;
+
+            // Special handling for "future" matches (scheduled in the future)
+            var now = DateTime.UtcNow;
+            bool isMatchInFuture = matchStartTime > now;
+
+            // End time calculation depends on match status
+            DateTime matchEndTime;
+
+            // If match has an actual end time, use it
+            if (match.EndTime.HasValue)
+            {
+                matchEndTime = match.EndTime.Value;
+                _logger.LogDebug("Using actual end time for match {MatchId}: {EndTime}", match.Id, matchEndTime);
+            }
+            // If match is in the past with no end time (ongoing or improperly closed)
+            else if (!isMatchInFuture)
+            {
+                // For past matches with no end time, assume it ended 45 mins after start
+                matchEndTime = matchStartTime.AddMinutes(45);
+                _logger.LogDebug("Past match {MatchId} has no EndTime, assuming it ended at {AssumedEndTime}",
+                    match.Id, matchEndTime);
+            }
+            // For future matches, add the buffer
+            else
+            {
+                matchEndTime = matchStartTime.Add(defaultBuffer);
+                _logger.LogDebug("Future match {MatchId} - using scheduled time plus buffer: {MatchEnd}",
+                    match.Id, matchEndTime);
+            }
+
+            // For the proposed match, we'll apply buffer differently based on match status
+            DateTime proposedStartTime;
+            DateTime proposedEndTime;
+
+            // If the existing match has ended (has EndTime or is in past), use minimal buffer 
+            if (match.EndTime.HasValue || !isMatchInFuture)
+            {
+                // For new match after completed match, just apply a small buffer before (prep time) 
+                proposedStartTime = proposedTime;
+                proposedEndTime = proposedTime.Add(defaultBuffer);
+
+                _logger.LogDebug("Match {MatchId} is completed, using no prep buffer", match.Id);
+            }
+            else
+            {
+                // For conflict with future match, we need reasonable buffers on both sides
+                proposedStartTime = proposedTime.Subtract(TimeSpan.FromMinutes(15));
+                proposedEndTime = proposedTime.Add(defaultBuffer);
+
+                _logger.LogDebug("Checking conflict with future match {MatchId}, using 15min prep buffer", match.Id);
+            }
+
+            // Check for overlap
+            // (proposedStart < matchEnd) && (proposedEnd > matchStart) means there's an overlap
+            bool hasConflict = proposedStartTime < matchEndTime && proposedEndTime > matchStartTime;
+
+            if (hasConflict)
+            {
+                _logger.LogDebug("Conflict detected: Existing match {MatchId} ({ExistingStart} to {ExistingEnd}) overlaps with proposed time ({ProposedStart} to {ProposedEnd})",
+                    match.Id, matchStartTime, matchEndTime, proposedStartTime, proposedEndTime);
+            }
+
+            return hasConflict;
         }
 
         // Helper method to update player rankings after a match
@@ -272,14 +458,14 @@ namespace PoolTournamentManager.Features.Matches.Services
             if (match.WinnerId == match.Player1Id)
             {
                 // Player 1 won
-                match.Player1.Ranking += 10; // Increase winner's ranking
-                match.Player2.Ranking = Math.Max(0, match.Player2.Ranking - 5); // Decrease loser's ranking, but not below 0
+                match.Player1.Ranking += 1; // Increase winner's ranking
+                match.Player2.Ranking = Math.Max(0, match.Player2.Ranking - 1); // Decrease loser's ranking, but not below 0
             }
             else if (match.WinnerId == match.Player2Id)
             {
                 // Player 2 won
-                match.Player2.Ranking += 10; // Increase winner's ranking
-                match.Player1.Ranking = Math.Max(0, match.Player1.Ranking - 5); // Decrease loser's ranking, but not below 0
+                match.Player2.Ranking += 1; // Increase winner's ranking
+                match.Player1.Ranking = Math.Max(0, match.Player1.Ranking - 1); // Decrease loser's ranking, but not below 0
             }
 
             await _dbContext.SaveChangesAsync();
@@ -288,6 +474,13 @@ namespace PoolTournamentManager.Features.Matches.Services
         // Helper method to map Match entity to MatchDto
         private MatchDto MapMatchToDto(Match match)
         {
+            // Log tournament information if available
+            if (match.TournamentId.HasValue && match.Tournament != null)
+            {
+                _logger.LogDebug("Match {MatchId} is part of tournament {TournamentId}: {TournamentName}",
+                    match.Id, match.TournamentId, match.Tournament.Name);
+            }
+
             return new MatchDto
             {
                 Id = match.Id,
@@ -310,10 +503,7 @@ namespace PoolTournamentManager.Features.Matches.Services
                     Name = match.Player2.Name,
                     ProfilePictureUrl = match.Player2.ProfilePictureUrl
                 } : null,
-                Location = match.Location,
-                Notes = match.Notes,
-                Player1Score = match.Player1Score,
-                Player2Score = match.Player2Score
+                Location = match.Location
             };
         }
     }
