@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PoolTournamentManager.Shared.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PoolTournamentManager.Shared.Infrastructure.Data;
 namespace PoolTournamentManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250519142423_RemovePlayersScoresFromMatches")]
+    partial class RemovePlayersScoresFromMatches
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,6 +37,9 @@ namespace PoolTournamentManager.Migrations
                     b.Property<string>("Location")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("Player1Id")
                         .HasColumnType("uniqueidentifier");

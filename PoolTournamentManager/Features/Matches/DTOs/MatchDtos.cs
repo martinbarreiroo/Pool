@@ -15,9 +15,7 @@ namespace PoolTournamentManager.Features.Matches.DTOs
         public PlayerSummaryDto? Player1 { get; set; }
         public PlayerSummaryDto? Player2 { get; set; }
         public string? Location { get; set; }
-        public string? Notes { get; set; }
-        public int? Player1Score { get; set; }
-        public int? Player2Score { get; set; }
+
     }
 
     public class CreateMatchDto
@@ -36,7 +34,6 @@ namespace PoolTournamentManager.Features.Matches.DTOs
         [StringLength(200)]
         public string? Location { get; set; }
 
-        public string? Notes { get; set; }
     }
 
     public class UpdateMatchDto
@@ -48,9 +45,6 @@ namespace PoolTournamentManager.Features.Matches.DTOs
         public Guid? Player1Id { get; set; }
         public Guid? Player2Id { get; set; }
         public string? Location { get; set; }
-        public string? Notes { get; set; }
-        public int? Player1Score { get; set; }
-        public int? Player2Score { get; set; }
     }
 
     public class PlayerSummaryDto

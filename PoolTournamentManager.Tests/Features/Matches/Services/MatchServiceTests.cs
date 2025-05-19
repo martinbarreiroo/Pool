@@ -117,7 +117,6 @@ namespace PoolTournamentManager.Tests.Features.Matches.Services
                 Player1Id = player1!.Id,
                 Player2Id = player2!.Id,
                 Location = "Pool Hall B",
-                Notes = "Test match"
             };
 
             await _dbContext.Matches.AddAsync(match);
@@ -133,7 +132,6 @@ namespace PoolTournamentManager.Tests.Features.Matches.Services
             Assert.Equal(match.Player1Id, result.Player1Id);
             Assert.Equal(match.Player2Id, result.Player2Id);
             Assert.Equal(match.Location, result.Location);
-            Assert.Equal(match.Notes, result.Notes);
         }
 
         [Fact]
@@ -251,9 +249,7 @@ namespace PoolTournamentManager.Tests.Features.Matches.Services
             var updateDto = new UpdateMatchDto
             {
                 ScheduledTime = newScheduledTime,
-                Location = "Updated Location",
-                Player1Score = 5,
-                Player2Score = 3
+                Location = "Updated Location"
             };
 
             // Act
@@ -263,16 +259,13 @@ namespace PoolTournamentManager.Tests.Features.Matches.Services
             Assert.NotNull(result);
             Assert.Equal(newScheduledTime, result.ScheduledTime);
             Assert.Equal("Updated Location", result.Location);
-            Assert.Equal(5, result.Player1Score);
-            Assert.Equal(3, result.Player2Score);
+
 
             // Verify match was updated in database
             var matchInDb = await _dbContext.Matches.FindAsync(match.Id);
             Assert.NotNull(matchInDb);
             Assert.Equal(newScheduledTime, matchInDb!.ScheduledTime);
             Assert.Equal("Updated Location", matchInDb.Location);
-            Assert.Equal(5, matchInDb.Player1Score);
-            Assert.Equal(3, matchInDb.Player2Score);
         }
 
         [Fact]

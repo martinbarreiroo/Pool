@@ -30,9 +30,6 @@ namespace PoolTournamentManager.Tests.Features.Matches.Models
             Assert.Equal(default(Guid), match.Player1Id);
             Assert.Equal(default(Guid), match.Player2Id);
             Assert.Null(match.Location);
-            Assert.Null(match.Notes);
-            Assert.Null(match.Player1Score);
-            Assert.Null(match.Player2Score);
             Assert.Null(match.Tournament);
             Assert.Null(match.Player1);
             Assert.Null(match.Player2);
@@ -57,9 +54,6 @@ namespace PoolTournamentManager.Tests.Features.Matches.Models
                 Player1Id = player1Id,
                 Player2Id = player2Id,
                 Location = "Pool Hall A",
-                Notes = "Championship match",
-                Player1Score = 5,
-                Player2Score = 3
             };
 
             // Act & Assert
@@ -70,9 +64,6 @@ namespace PoolTournamentManager.Tests.Features.Matches.Models
             Assert.Equal(player1Id, match.Player1Id);
             Assert.Equal(player2Id, match.Player2Id);
             Assert.Equal("Pool Hall A", match.Location);
-            Assert.Equal("Championship match", match.Notes);
-            Assert.Equal(5, match.Player1Score);
-            Assert.Equal(3, match.Player2Score);
         }
     }
 }

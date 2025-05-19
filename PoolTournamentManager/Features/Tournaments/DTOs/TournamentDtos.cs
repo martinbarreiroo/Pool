@@ -14,7 +14,8 @@ namespace PoolTournamentManager.Features.Tournaments.DTOs
         public int MatchCount { get; set; }
     }
 
-    public class CreateTournamentDto
+    public class
+    CreateTournamentDto
     {
         [Required]
         [StringLength(100)]

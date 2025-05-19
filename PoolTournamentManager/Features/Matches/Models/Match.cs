@@ -27,12 +27,6 @@ namespace PoolTournamentManager.Features.Matches.Models
         [StringLength(200)]
         public string? Location { get; set; }
 
-        public string? Notes { get; set; }
-
-        // Score information could be added here based on the requirements 
-        public int? Player1Score { get; set; }
-        public int? Player2Score { get; set; }
-
         // Navigation properties 
         public virtual Tournament? Tournament { get; set; }
         public virtual Player? Player1 { get; set; }

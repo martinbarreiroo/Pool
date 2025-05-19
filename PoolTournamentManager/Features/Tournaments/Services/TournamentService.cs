@@ -148,5 +148,67 @@ namespace PoolTournamentManager.Features.Tournaments.Services
 
             return true;
         }
+
+        /// <summary>
+        /// Gets the current match count for a tournament
+        /// </summary>
+        /// <param name="tournamentId">The tournament ID</param>
+        /// <returns>The number of matches in the tournament, or zero if the tournament doesn't exist</returns>
+        public async Task<int> GetTournamentMatchCountAsync(Guid tournamentId)
+        {
+            return await _dbContext.Matches
+                .Where(m => m.TournamentId == tournamentId)
+                .CountAsync();
+        }
+
+        /// <summary>
+        /// Updates the tournament's match collection by ensuring all matches with this tournament ID
+        /// are properly included in the tournament's Matches collection
+        /// </summary>
+        /// <param name="tournamentId">The tournament ID</param>
+        /// <returns>The updated match count, or -1 if the tournament doesn't exist</returns>
+        public async Task<int> RefreshTournamentMatchesAsync(Guid tournamentId)
+        {
+            var tournament = await _dbContext.Tournaments
+                .Include(t => t.Matches)
+                .FirstOrDefaultAsync(t => t.Id == tournamentId);
+
+            if (tournament == null)
+                return -1;
+
+            // Find all matches that should belong to this tournament
+            var tournamentMatches = await _dbContext.Matches
+                .Where(m => m.TournamentId == tournamentId)
+                .ToListAsync();
+
+            // Ensure each match is in the tournament's collection
+            bool collectionChanged = false;
+            foreach (var match in tournamentMatches)
+            {
+                if (!tournament.Matches.Any(m => m.Id == match.Id))
+                {
+                    tournament.Matches.Add(match);
+                    collectionChanged = true;
+                }
+            }
+
+            // Remove any matches from collection that don't belong
+            var matchesToRemove = tournament.Matches
+                .Where(m => m.TournamentId != tournamentId)
+                .ToList();
+
+            foreach (var match in matchesToRemove)
+            {
+                tournament.Matches.Remove(match);
+                collectionChanged = true;
+            }
+
+            if (collectionChanged)
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+
+            return tournament.Matches.Count;
+        }
     }
 }
