@@ -5,14 +5,13 @@ using System.Linq;
 
 namespace PoolTournamentManager.Shared.Infrastructure.Storage
 {
-    public class S3StorageService
+    public class S3StorageService : IStorageService
     {
         private readonly IAmazonS3 _s3Client;
         private readonly string _bucketName;
         private readonly string _profilePicturePath;
         private readonly int _presignedUrlExpirationMinutes;
         private readonly List<string> _allowedImageTypes;
-        private readonly int _maxFileSizeMB;
         private readonly ILogger<S3StorageService> _logger;
 
         // Add a protected property to allow derived classes to override the bucket name
@@ -38,7 +37,6 @@ namespace PoolTournamentManager.Shared.Infrastructure.Storage
             _profilePicturePath = configuration?.GetValue<string>("AWS:S3:ProfilePicturePath") ?? "players/{0}/profile";
             _presignedUrlExpirationMinutes = configuration?.GetValue<int>("AWS:S3:PresignedUrlExpirationMinutes") ?? 15;
             _allowedImageTypes = configuration?.GetSection("AWS:S3:AllowedImageTypes").Get<List<string>>() ?? new List<string> { "image/jpeg", "image/png" };
-            _maxFileSizeMB = configuration?.GetValue<int>("AWS:S3:MaxFileSizeMB") ?? 5;
             _logger = logger;
         }
 
@@ -99,6 +97,16 @@ namespace PoolTournamentManager.Shared.Infrastructure.Storage
                 _logger?.LogError(ex, "Error checking access to S3 bucket {BucketName}", BucketName);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Implementation of IStorageService.CheckAccessAsync()
+        /// </summary>
+        /// <returns>True if the storage is accessible, false otherwise</returns>
+        public Task<bool> CheckAccessAsync()
+        {
+            // Delegate to the existing implementation
+            return CheckBucketAccessAsync();
         }
     }
 }
